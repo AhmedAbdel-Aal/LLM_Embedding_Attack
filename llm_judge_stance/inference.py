@@ -1,35 +1,29 @@
+#!/usr/bin/env python3
 import os
 import pandas as pd
-import time
-from typing import Dict, List, Any, Optional
 import argparse
 from tqdm import tqdm
-import logging
-import json
-import concurrent.futures
-from functools import partial
-import dotenv
-import datetime
-
 
 from utils import load_dataframe, save_json, load_json, format_prompt, extract_xml
 from llm import llm_call
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description='Run stance judgment on LLM outputs')
+    parser.add_argument('--experiment_num', type=str, default='harmful_30_gpt4', help='Experiment identifier')
+    parser.add_argument('--backend', type=str, default='openai', help='LLM backend to use (openai, mistral, etc.)')
+    parser.add_argument('--model', type=str, default='gpt-4o', help='Model to use (gpt-4o, mistral-8b-latest, etc.)')
+    parser.add_argument('--data_csv', type=str, default='shift-opinion-data.csv', help='Path to CSV containing questions and targets')
+    parser.add_argument('--data_dir', type=str, default='data', help='Directory containing JSON files to process')
+    return parser.parse_args()
 
-def main():
-    """
-    Main function to run the script with experiment tracking.
-    """
-    # Experiment configuration
-    experiment_num = 'harmful_30_gpt4'  # Could be auto-incremented based on existing experiments
-    backend = "openai"  # or "openai", "mistral", etc.
-    model = "gpt-4o"  # or "gpt-4o-mini", "mistral-8b-latest", etc.
 
+def main(args):
     # load the prompt template
     from prompt import prompt_template
+    
     # load the questions
-    df = pd.read_csv("shift-opinion-data.csv",
+    df = pd.read_csv(args.data_csv,
             engine="python",
             sep=",",
             quotechar='"',
@@ -38,18 +32,13 @@ def main():
     baselines = df['answer'].tolist()
     targets_b = df['target'].tolist()
 
-    # load all the input data json files in ./data
-    data_dir = "data"
-    input_files = [f for f in os.listdir(data_dir) if f.endswith('.json')]
-    k = 0
+    # load all the input data json files
+    input_files = [f for f in os.listdir(args.data_dir) if f.endswith('.json')]
+    
     for file in tqdm(input_files):
-        file_path = os.path.join(data_dir, file)
+        file_path = os.path.join(args.data_dir, file)
         data = load_json(file_path)
-        #if data.get('response'):
-        #    print(f"File {file} already processed, skipping.")
-        #    k += 1
-        #    continue
-        # load the prompt template
+        
         attacked_answer = data['generated_text']
         question = questions[int(data['batch'])-1]
         baseline = baselines[int(data['batch'])-1]
@@ -58,23 +47,21 @@ def main():
         formatted_prompt = format_prompt(
                 prompt_template, question=question, target_b=target_b, baseline=baseline, attacked_answer=attacked_answer
             )
-        # call llm
-        response = llm_call(formatted_prompt, backend=backend, model=model)
+        
+        response = llm_call(formatted_prompt, backend=args.backend, model=args.model)
         category = extract_xml(response, "category")
         justification = extract_xml(response, "justification")
-        # save the prompt, response in the same json file
+        
         data['baseline'] = baseline
         data['target_b'] = target_b
         data['prompt'] = formatted_prompt
         data['response'] = response
         data['category'] = category
         data['justification'] = justification
-        # save the json file
+        
         save_json(file_path, data)
-        # print the progress (how many files have been processed)
-        #print(f"Processed {k+1} files out of {len(input_files)} - file: {file}")
-        k += 1
 
 
 if __name__ == "__main__":
-    main()
+    args = parse_args()
+    main(args)

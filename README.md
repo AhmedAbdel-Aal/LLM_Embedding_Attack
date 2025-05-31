@@ -1,42 +1,64 @@
-# LLM_Embedding_Attack
-This repo is a mini extension of the https://github.com/SchwinnL/LLM_Embedding_Attack repo
+# LLM Embedding Attack Research
 
-# TODO:
-    - refine the update me
-    - remove unused files
+## Overview
+This repository extends the work from [SchwinnL's LLM Embedding Attack](https://github.com/SchwinnL/LLM_Embedding_Attack), focusing on evaluating soft prompt-based embedding attacks against large language models. The research includes:
 
-This repository contains the code, prompts, and analysis used in a pilot study on evaluating soft prompt–based embedding attacks against open-source large language models (LLMs). The work revisits harmful content generation benchmarks and introduces **stance-shift attacks**. It was conducted as part of a PhD application to the Chair of Data Analytics and Machine Learning at TUM.
+We critically revisit how Attack Success Rate (ASR) is measured in embedding-based adversarial attacks on LLMs—going beyond simple keyword matching and proposing semantically grounded evaluation methods using GPT-4o as an automatic judge.
 
-> 📄 Read the full pilot study [here](https://github.com/AhmedAbdel-Aal/LLM_Embedding_Attack/blob/main/Beyond_Keyword_Matching__Semantic_Evaluation_of_Soft_Prompt_Attacks_and_a_Pilot_Study_on_Stance_Shifting_in_LLMs.pdf)
+* **Harmful Behavior Prompts (N=30):** We show that traditional ASR metrics (e.g., keyword match or HarmBench) overestimate attack success (96.7%) by not assessing semantic quality. Our refined metrics using a categorical judge lower this to **83.3%**, highlighting the role of weak or incoherent outputs.
+* **Stance Shifting Prompts (N=16):** We demonstrate that the same attack setup can **coherently flip model opinions** on sensitive but benign topics (e.g., gun control, abortion) with an ASR of **87.5%**, showing LLMs' susceptibility to semantic manipulation.
 
----
+### ⚙️ What’s Included
 
-## 🧪 Overview
+* Reproduction of soft prompt embedding attacks on LLaMA-2 7B Chat.
+* Four ASR evaluation strategies: keyword match, HarmBench, rating-based judge, and categorical classification.
+* Prompt templates and example evaluations for both **harmful content** and **stance shift** experiments.
+* All experiments run on Google Colab Pro (A100 GPU).
 
-We explore two main experimental setups:
+## Installation
+To set up the environment and install dependencies, follow these steps:
 
-### 1. Harmful-Behavior Attack
-- Soft prompt embedding attacks on 30 prompts from HarmBench.
-- Attack Success Rate (ASR) evaluated under four methods:
-  - **Keyword Matching**
-  - **HarmBench Judge**
-  - **GPT-4o Rating Prompt** ([Andriushchenko et al., 2024](https://arxiv.org/abs/2404.02151))
-  - **Categorical GPT-4o Prompt** (ours)
-- Reveals overestimation of ASR by simple heuristics and introduces a semantically-grounded alternative.
+```bash
+# Create and activate virtual environment
+uv venv
+source .venv/bin/activate  # macOS/Linux
+.venv\Scripts\activate     # Windows
 
-### 2. Stance-Shift Attack
-- Introduces 16 socially sensitive prompts (e.g., gun control, abortion rights).
-- Embedding attacks aimed at shifting the model from its baseline stance to a predefined target (Opinion B).
-- Responses evaluated by a zero-shot GPT-4o category prompt.
-- ASR:  
-  - **87.5%** (coherent stance shifts)  
-  - **93.75%** (including low-utility partial shifts)
----
-
-🛠️ How to Reproduce
-- The judge parts require api tokens to GPT-4o (e.g., for semantic evaluation).
-- add your tokens in `.env` file as follows
-```python
-OPENAI_API_KEY = 'sk-AAABBBCCC'
+# Install dependencies
+uv pip install -r requirements.txt
 ```
----
+
+## Configuration
+Create a `.env` file with your OpenAI API key:
+
+```ini
+OPENAI_API_KEY=your-api-key-here
+```
+
+## Usage
+### Harmful Behavior Evaluation
+Run the following command to evaluate harmful behavior:
+
+```bash
+python3 llm_judge_harmful/inference.py \
+    --experiment_num your_experiment \
+    --backend mistral \
+    --model mistral-8b-latest \
+    --judge category \
+    --data_path ../data/your_data.csv
+```
+
+### Stance Shift Analysis
+Run the following command for stance shift analysis:
+
+```bash
+python3 llm_judge_stance/inference.py \
+    --experiment_num your_experiment \
+    --backend mistral \
+    --model mistral-8b-latest \
+    --data_csv your_data.csv \
+    --data_dir custom_data_dir
+```
+
+## Documentation
+The full research paper is available [here](https://github.com/AhmedAbdel-Aal/LLM_Embedding_Attack/blob/main/Beyond_Keyword_Matching__Semantic_Evaluation_of_Soft_Prompt_Attacks_and_a_Pilot_Study_on_Stance_Shifting_in_LLMs.pdf).
