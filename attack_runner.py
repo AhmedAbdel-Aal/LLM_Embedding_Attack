@@ -92,7 +92,7 @@ class AttackRunner:
 
     def forward(self, inputs_embeds, intermediate_layers, attention_mask=None):
         if intermediate_layers is None:
-            output = self.model(inputs_embeds=inputs_embeds, attention_mask=attention_mask)
+            output = self.model(inputs_embeds=inputs_embeds, attention_mask=attention_mask, output_attentions=True)
             # if not using logit lense we need to unsqueeze for the intermediate layer dim to get shape [IL=1, B, sequence_length, hidden_size]
             output.logits = torch.unsqueeze(output.logits, 0)
         else:
